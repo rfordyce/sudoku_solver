@@ -7,6 +7,7 @@
 class entry {
 public:
 	int value;
+	int index;
 	int row;
 	int column;
 	int subsquare;
@@ -25,6 +26,8 @@ entry() { //initializer
 }
 };/**/
 
+int iterations = 0;
+
 std::vector <entry> board(81);
 entry* rows[9][9];
 entry* columns[9][9];
@@ -32,6 +35,7 @@ entry* subsquares[9][9];
 
 void printBoard(char type='x')
 {
+	std::cout << "i" << iterations << " ";
 	switch(type) {
 		case 'r':
 			std::cout << "rows:";
@@ -74,9 +78,10 @@ void printBoard(char type='x')
 void setupArrays() //this should be in a separate file
 {
 	for (int i = 0; i < 81; i++) {
-		board.at(i).row = i / 9; //remainder is the column
-		board.at(i).column = i % 9; //abuses integar truncation
-		board.at(i).subsquare = (board.at(i).row / 3) + (board.at(i).column / 3) + i / 27 * 2;
+		board.at(i).index = i; // saves math later at the expense of negligible amount of memory
+		board.at(i).row = i / 9; // abuses integar truncation
+		board.at(i).column = i % 9; // remainder is the column
+		board.at(i).subsquare = (board.at(i).row / 3) + (board.at(i).column / 3) + i / 27 * 2; // refer to spreadsheet
 	}
 	// row pointers
 	rows[0][0] = &board.at(0);
@@ -334,35 +339,57 @@ void setupArrays() //this should be in a separate file
 //check if no other in subsquare have value n
 //test if board complete
 
+void testOnlyValidPositionRows(entry* e, int v)
+{
+	for (int i = 0; i < 9; i++)
+		if (i != (*e).row) // not itself
+			if ((*rows[(*e).row][i]).value < 1)// value not known
+				if ((*rows[(*e).row][i]).numbers[v] > 0) return; //this is not the only valid spot!
+	(*e).value = v;
+	printBoard();
+}
+
+void testOnlyValidPositionColumns(entry* e, int v)
+{
+	for (int i = 0; i < 9; i++)
+		if (i != (*e).column) // not itself
+			if ((*columns[(*e).column][i]).value < 1)// value not known
+				if ((*columns[(*e).column][i]).numbers[v] > 0) return; //this is not the only valid spot!
+	(*e).value = v;
+	printBoard();
+}
+
+void testOnlyValidPositionSubsquares(entry* e, int v)
+{
+	for (int i = 0; i < 9; i++)
+		if (i != (*e).subsquare) // not itself
+			if ((*subsquares[(*e).subsquare][i]).value < 1)// value not known
+				if ((*subsquares[(*e).subsquare][i]).numbers[v] > 0) return; //this is not the only valid spot!
+	(*e).value = v;
+	printBoard();
+}
+
 void testEntry(entry* e)
 {
-	
-	if ((*e).value > 0) { //testing only; checked upstream!
-		std::cout << "(*e).value > 0 : " << (*e).value << std::endl;
-		exit(-1);
-	}
 	// update numbers to exclude duplicates of known values
-	for (int i = 0; i < 9; i++) {
-		if (not (&board.at(i) == e)) { // is not itself - fixme; cannot use [i]
-			for (int v = 1; v <= 9; v++)
-				if (not (*rows[(*e).row][i]).value == (*e).numbers[v])
-					(*e).numbers[v] = 0;
-			for (int v = 1; v <= 9; v++)
-				if (not (*columns[(*e).column][i]).value == (*e).numbers[v])
-					(*e).numbers[v] = 0;
-			for (int v = 1; v <= 9; v++)
-				if (not (*subsquares[(*e).subsquare][i]).value == (*e).numbers[v])
-					(*e).numbers[v] = 0;
+	for (int v = 1; v <= 9; v++) { //for each value in numbers[]
+		if ((*e).numbers[v] > 0) { //if there is a value in numbers[v]
+			for (int i = 0; i < 9; i++) { // this does check itself, but is probably faster than testing if it is itself
+				if ((*rows[(*e).row][i]).value == (*e).numbers[v])             (*e).numbers[v] = 0;
+				if ((*columns[(*e).column][i]).value == (*e).numbers[v])       (*e).numbers[v] = 0;
+				if ((*subsquares[(*e).subsquare][i]).value == (*e).numbers[v]) (*e).numbers[v] = 0;
+			}
 		}
 	}
 	
 	// test if only valid position for numbers (no other numbers[] include it!)
-	for (int i = 0; i < 9; i++)
-		for (int ve = 1; ve <= 9; ve++)
-			for (int vtest = 1; vtest <= 9; vtest++)
-				//if (not (*rows[(*e).row][i]).value == (*e).numbers[v])
-					//(*e).numbers[v] = 0;
-					;
+	for (int v = 1; v <= 9; v++) { //for each value in numbers[]
+		if ((*e).numbers[v] > 0) { //if there is a value in numbers[v]
+			testOnlyValidPositionRows(e,v);
+			testOnlyValidPositionColumns(e,v);
+			testOnlyValidPositionSubsquares(e,v);
+		}
+	}
 }/**/
 
 void validateEntry(entry* e)
@@ -383,20 +410,13 @@ void validateEntry(entry* e)
 	std::cout << std::endl;
 }/**/
 
-void validateEntries()
-{
-	for (int i = 0; i < 81 ; i++)
-		if (board.at(i).value < 1) validateEntry(&board.at(i)); //no value yet!
-}/**/
-
 void sweepEntries()
 {
 	for (int i = 0; i < 81 ; i++) {
 		if (board.at(i).value < 1) testEntry(&board.at(i)); //no value yet!
 	}
-	//std::cout << "sweep complete!\n";
 	for (int i = 0; i < 81 ; i++) {
-		(&board.at(i));
+		if (board.at(i).value < 1) validateEntry(&board.at(i)); //no value yet!
 	}
 }/**/
 
@@ -473,6 +493,27 @@ void filltestvalues()
 	board.at(79).value = 1;
 	board.at(80).value = 2;
 }/**/
+
+/*void filltestvalues()
+{
+	//board.at(0).value = 1;
+	board.at(1).value = 2;
+	board.at(2).value = 3;
+	board.at(3).value = 4;
+	board.at(4).value = 5;
+	board.at(5).value = 6;
+	board.at(6).value = 7;
+	board.at(7).value = 8;
+	board.at(8).value = 9;
+	board.at(54).value = 2;
+	board.at(55).value = 3;
+	board.at(56).value = 4;
+	board.at(57).value = 5;
+	board.at(58).value = 6;
+	board.at(59).value = 7;
+	board.at(60).value = 8;
+	board.at(61).value = 9;
+}/**/
 	
 int main(int argc, char* argv[])
 {
@@ -502,9 +543,10 @@ int main(int argc, char* argv[])
 	std::cout << "Program beginning.." << std::endl;
 	filltestvalues();
 	printBoard();
-	//return 0;
 	do {
 		sweepEntries();
+		iterations++;
+		if (iterations % 5000 == 0) std::cout << "iterations: " << iterations << std::endl;
 	} while (not testBoardComplete());
 
 	//program stuff
