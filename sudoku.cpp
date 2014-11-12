@@ -3,6 +3,9 @@
 #include <vector>
 #include <getopt.h> //for getopt()
 #include <cstdlib> //for exit()
+#include <string>
+
+bool DISPLAY_PROGRESS = false;
 
 class entry {
 public:
@@ -47,7 +50,7 @@ void printBoard(char type='x')
 			std::cout << "subsquares:";
 			break;
 		default:
-			std::cout << "known values:";
+			std::cout << "values:";
 			break;
 	}
 	for (int i = 0; i < 81; i++) {
@@ -72,8 +75,69 @@ void printBoard(char type='x')
 		}
 		std::cout << " ";
 	}
-	std::cout << std::endl;
+	std::cout << std::endl << std::endl;;
 }/**/
+
+void inputBoard()
+{
+	char cont = 'x';
+	std::string lines[9];
+	//get input
+	//test length of first line, and assign length based upon that
+	//put into board
+	//check board
+	while (true) {
+		std::cout << "input: " << std::endl;
+		getline(std::cin,lines[0]);
+		if (lines[0][0] == 'q') exit(0); //user input is trash
+		getline(std::cin,lines[1]);
+		getline(std::cin,lines[2]);
+		getline(std::cin,lines[3]);
+		getline(std::cin,lines[4]);
+		getline(std::cin,lines[5]);
+		getline(std::cin,lines[6]);
+		getline(std::cin,lines[7]);
+		getline(std::cin,lines[8]);
+		std::cout << "lines[0].size() : " << lines[0].size() << std::endl;
+		switch(lines[0].size()) {
+			case 9: //fixme
+				for (int i = 0; i < 9; i++)
+					for (int j = 0; j < 9; j++)
+						board.at(i * 9 + j).value = lines[i][j];
+				break;
+			case 17:
+			case 18:
+				for (int i = 0; i < 9; i++)
+					for (int j = 0; j < 18; j++)
+						if (j % 2 == 0) {
+							if (lines[i][j] - '0'>= 1 and lines[i][j] - '0'<= 9) {
+								std::cout << "i = " << i << " j = " << j << "lines[i][j] = " << lines[i][j] << std::endl;
+								std::cout << "boardindex: " << i * 9 + j / 2 <<std::endl;
+								board.at(i * 9 + j / 2).value = lines[i][j] - '0';
+							}
+						}
+				break;
+			default:
+				std::cout << "make the rows divisible by 9 or 18!" << std::endl;
+				exit(0);
+		}
+		printBoard();
+		std::cout << "is this ok? (y/n/q): ";
+		std::cin >> cont;
+		if (cont == 'y') return;
+		if (cont == 'q') exit(0);
+		// reset stuff
+		for (int i = 0; i < 9 ; i++)
+			lines[i] = "";
+		for (int i = 0; i < 81; i++)
+			board.at(i).value = 0;
+	}
+}
+
+void inputFile()
+{
+	return;
+}
 
 void setupArrays() //this should be in a separate file
 {
@@ -346,7 +410,7 @@ void testOnlyValidPositionRows(entry* e, int v)
 			if ((*rows[(*e).row][i]).value < 1)// value not known
 				if ((*rows[(*e).row][i]).numbers[v] > 0) return; //this is not the only valid spot!
 	(*e).value = v;
-	printBoard();
+	if (DISPLAY_PROGRESS) printBoard();
 }
 
 void testOnlyValidPositionColumns(entry* e, int v)
@@ -356,7 +420,7 @@ void testOnlyValidPositionColumns(entry* e, int v)
 			if ((*columns[(*e).column][i]).value < 1)// value not known
 				if ((*columns[(*e).column][i]).numbers[v] > 0) return; //this is not the only valid spot!
 	(*e).value = v;
-	printBoard();
+	if (DISPLAY_PROGRESS) printBoard();
 }
 
 void testOnlyValidPositionSubsquares(entry* e, int v)
@@ -366,7 +430,7 @@ void testOnlyValidPositionSubsquares(entry* e, int v)
 			if ((*subsquares[(*e).subsquare][i]).value < 1)// value not known
 				if ((*subsquares[(*e).subsquare][i]).numbers[v] > 0) return; //this is not the only valid spot!
 	(*e).value = v;
-	printBoard();
+	if (DISPLAY_PROGRESS) printBoard();
 }
 
 void testEntry(entry* e)
@@ -406,8 +470,7 @@ void validateEntry(entry* e)
 		exit(-1);
 	}
 	(*e).value = value;
-	printBoard();
-	std::cout << std::endl;
+	if (DISPLAY_PROGRESS) printBoard();
 }/**/
 
 void sweepEntries()
@@ -418,35 +481,6 @@ void sweepEntries()
 	for (int i = 0; i < 81 ; i++) {
 		if (board.at(i).value < 1) validateEntry(&board.at(i)); //no value yet!
 	}
-}/**/
-
-void printReport()
-{
-	std::cout << "report goes here!" << std::endl;
-	printBoard();
-	return;
-}/**/
-
-/*void testArrays()
-{
-	std::cout << "Values test.." << std::endl;
-	printBoard('r');
-	printBoard('c');
-	printBoard('s');
-	std::cout << "Filling layout" << std::endl;
-	printBoard();
-	std::cout << "setting board values incorrectly for testing!\n";
-	for (int i = 0; i < 81; i++)
-		board.at(i).value = i;
-	for (int i = 0; i < 9; i++)
-		std::cout << (*rows[5][i]).value << " ";
-	std::cout << std::endl;
-	for (int i = 0; i < 9; i++)
-		std::cout << (*columns[5][i]).value << " ";
-	std::cout << std::endl;
-	for (int i = 0; i < 9; i++)
-		std::cout << (*subsquares[5][i]).value << " ";
-	std::cout << std::endl;	
 }/**/
 
 bool testBoardComplete()
@@ -518,15 +552,23 @@ void filltestvalues()
 int main(int argc, char* argv[])
 {
 	int c;
-	while ((c = getopt(argc, argv, "sgh")) != -1) {
+	while ((c = getopt(argc, argv, "idh")) != -1) {
 		switch (c) {
-			case 's':
-				std::cout << "Running in Solver Mode" << std::endl;
+			case 'i':
+				inputBoard();
+				break;
+			case 'd':
+				DISPLAY_PROGRESS = true;
+				break;
+			case 'f':
+				inputFile();
 				break;
 			case 'h':
 				std::cout << "sudoku help" << std::endl
-				          << "-s\tSolver Mode" << std::endl
-				          << "-g\tGenerate Mode" << std::endl
+					<< "h\ttThis help menu" << std::endl
+					<< "i\tRegular Input" << std::endl
+					<< "d\tOutput the full layout whenever a new value is found" << std::endl
+					<< "f\tSpecify a file to read from" << std::endl
 				;
 				exit(0); break;
 			default:;
@@ -535,21 +577,18 @@ int main(int argc, char* argv[])
 	std::cout << "Building arrays.." << std::endl;
 	setupArrays();
 	//get layout
-	//test layout
-	//fill vectors of pointers
-
-	//more testing
-	//testArrays();
 	std::cout << "Program beginning.." << std::endl;
-	filltestvalues();
+	//filltestvalues();
+	//test layout is valid
 	printBoard();
 	do {
 		sweepEntries();
 		iterations++;
-		if (iterations % 5000 == 0) std::cout << "iterations: " << iterations << std::endl;
+		if (iterations % 1000 == 0) std::cout << "iterations: " << iterations << std::endl;
 	} while (not testBoardComplete());
 
 	//program stuff
-	printReport();
+	
+	printBoard();
 	return 0;
 }/**/
