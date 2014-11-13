@@ -78,6 +78,40 @@ void printBoard(char type='x')
 	std::cout << std::endl << std::endl;;
 }/**/
 
+void printBoardEverything()
+{
+	for (int r = 0; r < 9; r++) {//rows
+		for (int c = 0; c < 9; c++) {
+			for (int v = 1; v <= 3; v++) {
+				if ((*rows[r][c]).numbers[v] > 0) {
+					std::cout << (*rows[r][c]).numbers[v];
+				} else { std::cout << "_";}
+			}
+			if ((c + 1) % 3 == 0 and c < 8) std::cout << "   ";
+		}
+		std::cout << std::endl;
+		for (int c = 0; c < 9; c++) {
+			for (int v = 4; v <= 6; v++) {
+				if ((*rows[r][c]).numbers[v] > 0) {
+					std::cout << (*rows[r][c]).numbers[v];
+				} else { std::cout << "_";}
+			}
+			if ((c + 1) % 3 == 0 and c < 8) std::cout << "   ";
+		}
+		std::cout << std::endl;
+		for (int c = 0; c < 9; c++) {
+			for (int v = 7; v <= 9; v++) {
+				if ((*rows[r][c]).numbers[v] > 0) {
+					std::cout << (*rows[r][c]).numbers[v];
+				} else { std::cout << "_";}
+			}
+			if ((c + 1) % 3 == 0 and c < 8) std::cout << "   ";
+		}
+		std::cout << std::endl;
+		if ((r + 1) % 3 == 0 and r < 8) std::cout << "                              \n                              " << std::endl;
+	}
+}
+
 void inputBoard()
 {
 	char cont = 'x';
@@ -111,11 +145,14 @@ void inputBoard()
 					for (int j = 0; j < 18; j++)
 						if (j % 2 == 0) {
 							if (lines[i][j] - '0'>= 1 and lines[i][j] - '0'<= 9) {
-								std::cout << "i = " << i << " j = " << j << "lines[i][j] = " << lines[i][j] << std::endl;
-								std::cout << "boardindex: " << i * 9 + j / 2 <<std::endl;
+								if (DISPLAY_PROGRESS) std::cout << "i = " << i << " j = " << j << " lines[i][j] = " << lines[i][j] << "boardindex: " << i * 9 + j / 2 << std::endl;
 								board.at(i * 9 + j / 2).value = lines[i][j] - '0';
 							}
 						}
+				for (int i = 0; i < 81; i++) //clean the numbers from input!
+					if (board.at(i).value > 0)
+						for (int v = 1; v <= 9; v++)
+							board.at(i).numbers[v] = 0;
 				break;
 			default:
 				std::cout << "make the rows divisible by 9 or 18!" << std::endl;
@@ -395,6 +432,19 @@ void setupArrays() //this should be in a separate file
 	subsquares[8][8] = &board.at(80);
 }/**/
 
+void setValue(entry* e, int v)
+{
+	(*e).value = v;
+	for (int i = 0; i < 9; i++) { //clean value from surrounding
+		(*rows[(*e).row][i]).numbers[v] = 0;
+		(*columns[(*e).column][i]).numbers[v] = 0;
+		(*subsquares[(*e).subsquare][i]).numbers[v] = 0;
+	}
+	for (int v = 1; v <= 9; v++)
+		(*e).numbers[v] = 0;
+	if (DISPLAY_PROGRESS) printBoard();
+}
+
 //sweep rows for invalid numbers
 //sweep columns for invalid numbers
 //sweep subsquares for invalid numbers
@@ -406,32 +456,80 @@ void setupArrays() //this should be in a separate file
 void testOnlyValidPositionRows(entry* e, int v)
 {
 	for (int i = 0; i < 9; i++)
-		if (i != (*e).row) // not itself
-			if ((*rows[(*e).row][i]).value < 1)// value not known
-				if ((*rows[(*e).row][i]).numbers[v] > 0) return; //this is not the only valid spot!
-	(*e).value = v;
-	if (DISPLAY_PROGRESS) printBoard();
+		if (i != (*e).column) {// not itself
+			if ((*rows[(*e).row][i]).value == v) return; //value is in another box already! (shouldn't happen)
+			if ((*rows[(*e).row][i]).numbers[v] > 0) return; //this is not the only valid spot!
+		}
+	setValue(e,v);
 }
 
 void testOnlyValidPositionColumns(entry* e, int v)
 {
 	for (int i = 0; i < 9; i++)
-		if (i != (*e).column) // not itself
-			if ((*columns[(*e).column][i]).value < 1)// value not known
-				if ((*columns[(*e).column][i]).numbers[v] > 0) return; //this is not the only valid spot!
-	(*e).value = v;
-	if (DISPLAY_PROGRESS) printBoard();
+		if (i != (*e).column) {// not itself
+			if ((*columns[(*e).column][i]).value == v) return; //value is in another box already! (shouldn't happen)
+			if ((*columns[(*e).column][i]).numbers[v] > 0) return; //this is not the only valid spot!
+		}
+	setValue(e,v);
 }
 
 void testOnlyValidPositionSubsquares(entry* e, int v)
 {
 	for (int i = 0; i < 9; i++)
-		if (i != (*e).subsquare) // not itself
-			if ((*subsquares[(*e).subsquare][i]).value < 1)// value not known
-				if ((*subsquares[(*e).subsquare][i]).numbers[v] > 0) return; //this is not the only valid spot!
-	(*e).value = v;
-	if (DISPLAY_PROGRESS) printBoard();
+		if (i != (*e).column) {// not itself
+			if ((*subsquares[(*e).subsquare][i]).value == v) return; //value is in another box already! (shouldn't happen)
+			if ((*subsquares[(*e).subsquare][i]).numbers[v] > 0) return; //this is not the only valid spot!
+		}
+	setValue(e,v);
 }
+
+/*bool testUniqueCandidateRows(entry* e, int v)
+{
+	for (int i = 0; i < 9; i++) {
+		if (not (i = (*e).row)) {// not itself
+			switch((*e).row % 3) {
+				case 0: //+1+2
+					if ((*rows[(*e).row + 1][i]).value == v) return false;
+					if ((*rows[(*e).row + 2][i]).value == v) return false;
+					break;
+				case 1: //-1+1
+					if ((*rows[(*e).row - 1][i]).value == v) return false;
+					if ((*rows[(*e).row + 1][i]).value == v) return false;
+					break;
+				case 2: //-1-2
+					if ((*rows[(*e).row - 1][i]).value == v) return false;
+					if ((*rows[(*e).row - 2][i]).value == v) return false;
+					break;
+				default:; //exit(-1); //invalid entry
+			}
+		}
+	}
+	return true;
+}/**/
+
+/*bool testUniqueCandidateColumns(entry* e, int v)
+{
+	for (int i = 0; i < 9; i++) {
+		if (not (i = (*e).column)) {// not itself
+			switch((*e).column % 3) {
+				case 0: //+1+2
+					if ((*columns[(*e).column + 1][i]).value == v) return false;
+					if ((*columns[(*e).column + 2][i]).value == v) return false;
+					break;
+				case 1: //-1+1
+					if ((*columns[(*e).column - 1][i]).value == v) return false;
+					if ((*columns[(*e).column + 1][i]).value == v) return false;
+					break;
+				case 2: //-1-2
+					if ((*columns[(*e).column - 1][i]).value == v) return false;
+					if ((*columns[(*e).column - 2][i]).value == v) return false;
+					break;
+				default:; //exit(-1); //invalid entry
+			}
+		}
+	}
+	return true;
+}/**/
 
 void testEntry(entry* e)
 {
@@ -448,12 +546,18 @@ void testEntry(entry* e)
 	
 	// test if only valid position for numbers (no other numbers[] include it!)
 	for (int v = 1; v <= 9; v++) { //for each value in numbers[]
-		if ((*e).numbers[v] > 0) { //if there is a value in numbers[v]
+		if ((*e).numbers[v] > 0) { //if there is a number in numbers[v]
 			testOnlyValidPositionRows(e,v);
 			testOnlyValidPositionColumns(e,v);
 			testOnlyValidPositionSubsquares(e,v);
 		}
 	}
+
+	//test for unique candidate https://www.kristanix.com/sudokuepic/sudoku-solving-techniques.php
+	/*for (int v = 1; v <= 9; v++) //probably redundant
+		if ((*e).numbers[v] > 0)
+			if (testUniqueCandidateRows(e,v) and testUniqueCandidateColumns(e,v))
+				setValue(e,v);*/
 }/**/
 
 void validateEntry(entry* e)
@@ -469,7 +573,7 @@ void validateEntry(entry* e)
 		std::cout << "value == 0\n";
 		exit(-1);
 	}
-	(*e).value = value;
+	setValue(e,value);
 	if (DISPLAY_PROGRESS) printBoard();
 }/**/
 
@@ -564,6 +668,7 @@ int main(int argc, char* argv[])
 				inputFile();
 				break;
 			case 'h':
+			default: // fallover as bad flag displays help too!
 				std::cout << "sudoku help" << std::endl
 					<< "h\ttThis help menu" << std::endl
 					<< "i\tRegular Input" << std::endl
@@ -571,24 +676,38 @@ int main(int argc, char* argv[])
 					<< "f\tSpecify a file to read from" << std::endl
 				;
 				exit(0); break;
-			default:;
 		}
 	}
 	std::cout << "Building arrays.." << std::endl;
 	setupArrays();
 	//get layout
 	std::cout << "Program beginning.." << std::endl;
-	//filltestvalues();
+	//filltestvalues(); //temporary test
 	//test layout is valid
 	printBoard();
+	
+	int last = 0;
+	int latest = 0;
 	do {
+		///printBoardEverything();
 		sweepEntries();
 		iterations++;
-		if (iterations % 1000 == 0) std::cout << "iterations: " << iterations << std::endl;
+		if (iterations % 5000 == 0) std::cout << "iterations: " << iterations << std::endl;
+		latest = 0;
+		/*for (int i = 0 ; i < 81 ; i++)
+			for (int v = 1; v <=9 ; v++)
+				if (board.at(i).numbers[v] > 0) latest++;
+		if (latest == last) {
+			std::cout << "stagnated with " << iterations << " iterations!" << std::endl;
+			exit(0);
+		}
+		last = latest; //relies on an incorrect assumption; must have at least nine iterations before canning it */
+		std::cout << "\n";
+		printBoard();
+		printBoardEverything();
+		std::cout << "\n\n\n\n";
+		if (iterations > 5) exit(0);
 	} while (not testBoardComplete());
-
-	//program stuff
-	
-	printBoard();
+	printBoard(); // final output!
 	return 0;
 }/**/
