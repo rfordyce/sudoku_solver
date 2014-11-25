@@ -191,8 +191,10 @@ void inputFile()
 void testOnlyValidPositionRows(entry* e, int v)
 {
 	for (int i = 0; i < 9; i++)
-		if (i != (*e).column) {// not itself
+		if (i != (*e).row) {// not itself
 			if ((*rows[(*e).row][i]).value == v) return; //value is in another box already! (shouldn't happen)
+			if ((*columns[(*e).column][i]).value == v) return;
+			if ((*subsquares[(*e).subsquare][i]).value == v) return;
 			if ((*rows[(*e).row][i]).numbers[v] > 0) return; //this is not the only valid spot!
 		}
 	setValue(e,v);
@@ -202,7 +204,9 @@ void testOnlyValidPositionColumns(entry* e, int v)
 {
 	for (int i = 0; i < 9; i++)
 		if (i != (*e).column) {// not itself
-			if ((*columns[(*e).column][i]).value == v) return; //value is in another box already! (shouldn't happen)
+			if ((*rows[(*e).row][i]).value == v) return; //value is in another box already! (shouldn't happen)
+			if ((*columns[(*e).column][i]).value == v) return;
+			if ((*subsquares[(*e).subsquare][i]).value == v) return;
 			if ((*columns[(*e).column][i]).numbers[v] > 0) return; //this is not the only valid spot!
 		}
 	setValue(e,v);
@@ -211,11 +215,13 @@ void testOnlyValidPositionColumns(entry* e, int v)
 void testOnlyValidPositionSubsquares(entry* e, int v)
 {
 	for (int i = 0; i < 9; i++)
-		if (i != (*e).column) {// not itself
-			if ((*subsquares[(*e).subsquare][i]).value == v) return; //value is in another box already! (shouldn't happen)
+		if (i != (*e).subsquare) {// not itself
+			if ((*rows[(*e).row][i]).value == v) return; //value is in another box already! (shouldn't happen)
+			if ((*columns[(*e).column][i]).value == v) return;
+			if ((*subsquares[(*e).subsquare][i]).value == v) return;
 			if ((*subsquares[(*e).subsquare][i]).numbers[v] > 0) return; //this is not the only valid spot!
 		}
-	setValue(e,v);
+	//setValue(e,v);
 }
 
 bool testUniqueCandidateRows(entry* e, int v)
@@ -382,28 +388,13 @@ int main(int argc, char* argv[])
 	//filltestvalues(); //temporary test
 	//test layout is valid
 	printBoard();
-	
 	do {
 		///printBoardEverything();
 		sweepEntries();
 		iterations++;
 		//if (iterations % 5000 == 0) std::cout << "iterations: " << iterations << std::endl;
-		if (iterations > 200) {
-			double layouts = 1;
-			int remaining = 0;
-			for (int i = 0; i < 81; i++) {
-				if (board.at(i).value > 0) {
-					layouts = layouts; //no change to layout
-					//std::cout << i << " " << 1 << std::endl;
-				} else {
-					for (int v = 1; v <= 9; v++)
-						if (board.at(i).numbers[v] > 0) remaining++;
-					layouts = layouts * remaining;
-					//std::cout << i << " " << remaining << std::endl;
-					remaining = 0;
-				}
-			}
-			std::cout << "layouts: " << layouts << std::endl;
+		if (iterations > 900) {
+			std::cout << "layouts: " << layoutsRemaining() << std::endl;
 			printBoardEverything();
 			exit(0);
 		}
