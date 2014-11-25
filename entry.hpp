@@ -37,4 +37,19 @@ entry* rows[9][9];
 entry* columns[9][9];
 entry* subsquares[9][9];
 
+int remainingNumbers(entry* e)
+{
+	int n = 0;
+	for (int v = 1 ; v<=9 ;v++)
+		if ((*e).numbers[v] > 0) n++;
+	return n;
+}
+
+bool compareNumbers(entry* e1, entry* e2)
+{
+	for (int v = 1 ; v<=9 ;v++)
+		if (not ( (*e1).numbers[v] == (*e2).numbers[v] )) return false; //arrays differ
+	return true; //numbers arrays are the same
+}
+
 #endif
