@@ -25,12 +25,12 @@ Initial Steps
 Recurring Steps
 
 1. Go through all the potential values each entry contains and determine if it is the only valid place for it.
-⋅⋅* Rows
-⋅⋅* Columns
-⋅⋅* Subsquares
+	* Rows
+	* Columns
+	* Subsquares
 2. Create chains that link the potential values such that if one is solved they are all solved.
 3. Fewer than N boards remain?
-⋅⋅* Generate all remaining boards.
-⋅⋅* Bruteforce-match them.
+	* Generate all remaining boards.
+	* Bruteforce-match them.
 
 [1]: https://www.kristanix.com/sudokuepic/sudoku-solving-techniques.php
