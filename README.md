@@ -1,5 +1,5 @@
-sudoku_solver
-=============
+sudoku_solver - initial code, does not yet function
+===
 
 A sudoku solving program.
 
